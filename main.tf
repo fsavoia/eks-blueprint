@@ -65,6 +65,21 @@ module "eks_blueprints" {
         }
       ]
 
+      # https://docs.aws.amazon.com/eks/latest/userguide/choosing-instance-type.html#determine-max-pods
+      pre_userdata = <<-EOT
+        MAX_PODS=$(/etc/eks/max-pods-calculator.sh \
+        --instance-type-from-imds \
+        --cni-version ${trimprefix(data.aws_eks_addon_version.latest["vpc-cni"].version, "v")} \
+        --cni-prefix-delegation-enabled \
+        --cni-custom-networking-enabled \
+        )
+      EOT
+
+      # These settings opt out of the default behavior and use the maximum number of pods, with a cap of 110 due to
+      # Kubernetes guidance https://kubernetes.io/docs/setup/best-practices/cluster-large/
+      # See more info here https://docs.aws.amazon.com/eks/latest/userguide/cni-increase-ip-addresses.html
+      kubelet_extra_args   = "--max-pods=$${MAX_PODS}"
+      bootstrap_extra_args = "--use-max-pods false"
 
     }
   }
@@ -82,10 +97,36 @@ module "eks_blueprints_kubernetes_addons" {
   eks_worker_security_group_id = module.eks_blueprints.worker_node_security_group_id
   auto_scaling_group_names     = module.eks_blueprints.self_managed_node_group_autoscaling_groups
 
+  #---------------------------------------------------------------
+  # ARGO CD ADD-ON
+  #---------------------------------------------------------------
+
+  enable_argocd         = true
+  argocd_manage_add_ons = true # Indicates that ArgoCD is responsible for managing/deploying Add-ons.
+
+  argocd_applications = {
+    addons    = local.addon_application
+    workloads = local.workload_application #We comment it for now
+  }
+
+  argocd_helm_config = {
+    set = [
+      {
+        name  = "server.service.type"
+        value = "LoadBalancer"
+      }
+    ]
+  }
+
+
   # EKS Addons
   enable_amazon_eks_vpc_cni = true
   amazon_eks_vpc_cni_config = {
-    most_recent = true
+    # Version 1.6.3-eksbuild.2 or later of the Amazon VPC CNI is required for custom networking
+    # Version 1.9.0 or later (for version 1.20 or earlier clusters or 1.21 or later clusters configured for IPv4)
+    addon_version     = data.aws_eks_addon_version.latest["vpc-cni"].version
+    resolve_conflicts = "OVERWRITE"
+    most_recent       = true
   }
 
   enable_amazon_eks_coredns = true
@@ -93,10 +134,15 @@ module "eks_blueprints_kubernetes_addons" {
     most_recent = true
   }
 
+  # K8s addons
   enable_amazon_eks_kube_proxy         = true
   enable_amazon_eks_aws_ebs_csi_driver = true
+  enable_aws_load_balancer_controller  = true
+  enable_aws_for_fluentbit             = true
+  enable_metrics_server                = true
+  enable_cluster_autoscaler            = true
 
   tags = local.tags
 
-  depends_on = [module.eks_blueprints ]
+  depends_on = [module.eks_blueprints]
 }
