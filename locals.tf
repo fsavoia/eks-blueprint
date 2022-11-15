@@ -23,7 +23,6 @@ locals {
   #---------------------------------------------------------------
   # ARGOCD ADD-ON APPLICATION
   #---------------------------------------------------------------
-
   addon_application = {
     path               = "chart"
     repo_url           = "https://github.com/fsavoia/eks-blueprints-add-ons.git"
@@ -33,12 +32,11 @@ locals {
   #---------------------------------------------------------------
   # ARGOCD WORKLOAD APPLICATION
   #---------------------------------------------------------------
-
-  workload_application = {
-    path               = "envs/dev"
-    repo_url           = "https://github.com/fsavoia/eks-blueprints-workloads.git"
-    add_on_application = false
-  }
+  # workload_application = {
+  #   path               = "envs/dev"
+  #   repo_url           = "https://github.com/fsavoia/eks-blueprints-workloads.git"
+  #   add_on_application = false
+  # }
 
   # Additional tags
   tags = {
