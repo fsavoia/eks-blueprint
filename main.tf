@@ -98,9 +98,8 @@ module "eks_blueprints_kubernetes_addons" {
   auto_scaling_group_names     = module.eks_blueprints.self_managed_node_group_autoscaling_groups
 
   #---------------------------------------------------------------
-  # ARGO CD ADD-ON
+  # ArgoCD Add-on
   #---------------------------------------------------------------
-
   enable_argocd         = true
   argocd_manage_add_ons = true # Indicates that ArgoCD is responsible for managing/deploying Add-ons.
 
@@ -119,7 +118,9 @@ module "eks_blueprints_kubernetes_addons" {
   }
 
 
-  # EKS Addons
+  #---------------------------------------------------------------
+  # EKS Native Add-on
+  #---------------------------------------------------------------
   enable_amazon_eks_vpc_cni = true
   amazon_eks_vpc_cni_config = {
     # Version 1.6.3-eksbuild.2 or later of the Amazon VPC CNI is required for custom networking
@@ -134,7 +135,9 @@ module "eks_blueprints_kubernetes_addons" {
     most_recent = true
   }
 
-  # K8s addons
+  #---------------------------------------------------------------
+  # Kubernetes Adds-on
+  #---------------------------------------------------------------
   enable_amazon_eks_kube_proxy         = true
   enable_amazon_eks_aws_ebs_csi_driver = true
   enable_aws_load_balancer_controller  = true
