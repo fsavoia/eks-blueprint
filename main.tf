@@ -98,5 +98,5 @@ module "eks_blueprints_kubernetes_addons" {
 
   tags = local.tags
 
-  depends_on = [module. ]
+  depends_on = [module.eks_blueprints ]
 }
