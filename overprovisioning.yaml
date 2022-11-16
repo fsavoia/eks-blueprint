@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: overprovisioning
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: cluster-proportional-autoscaler-sa
+  namespace: overprovisioning
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: overprovisioning-autoscaler
+  namespace: overprovisioning
+data:
+  defaultConfig:
+    ladder: |-
+      {
+        "nodesToReplicas":
+        [
+          [ 0, 1 ],
+          [ 5, 2 ],
+          [ 10, 3 ],
+          [ 15, 4 ],
+          [ 20, 5 ],
+          [ 25, 6 ],
+          [ 100, 10 ]
+        ]
+      }
+
+  schedules:
+  - name: night-and-weekend
+    cronTimeExpression: "0 18 * * 1-5"  # disable overprovisioning Monday - Friday from 6pm UTC
+    config:
+      ladder:
+        {
+          "nodesToReplicas":
+            [
+              [0, 0]
+            ]
+        }
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-proportional-autoscaler
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list", "watch"]
+  - apiGroups: [""]
+    resources: ["replicationcontrollers/scale"]
+    verbs: ["get", "update"]
+  - apiGroups: ["extensions","apps"]
+    resources: ["deployments/scale", "replicasets/scale"]
+    verbs: ["get", "update"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-proportional-autoscaler
+subjects:
+  - kind: ServiceAccount
+    name: cluster-proportional-autoscaler-sa
+    namespace: overprovisioning
+roleRef:
+  kind: ClusterRole
+  name: cluster-proportional-autoscaler
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: overprovisioning
+value: -1
+globalDefault: false
+description: "Priority class used by overprovisioning."
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overprovisioning
+  namespace: overprovisioning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: overprovisioning
+  template:
+    metadata:
+      labels:
+        run: overprovisioning
+    spec:
+      priorityClassName: overprovisioning
+      containers:
+      - name: reserve-resources
+        image: k8s.gcr.io/pause
+        resources:
+          requests:
+            cpu: 1100m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overprovisioning-autoscaler
+  namespace: overprovisioning
+  labels:
+    app: overprovisioning-autoscaler
+spec:
+  selector:
+    matchLabels:
+      app: overprovisioning-autoscaler
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: overprovisioning-autoscaler
+    spec:
+      containers:
+        - image: gcr.io/google_containers/cluster-proportional-autoscaler-amd64:1.7.1
+          name: autoscaler
+          command:
+            - ./cluster-proportional-autoscaler
+            - --namespace=overprovisioning
+            - --configmap=overprovisioning-autoscaler
+            - --target=deployment/overprovisioning
+            - --logtostderr=true
+            - --v=2
+      serviceAccountName: cluster-proportional-autoscaler-sa

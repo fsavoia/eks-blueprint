@@ -11,7 +11,7 @@ locals {
 
   # Managed Node Group Variables
   node_group_name = "managed-ondemand"
-  instance_types  = ["m5.large"]
+  instance_types  = ["m5.2xlarge"]
   capacity_type   = "ON_DEMAND"
   desired_size    = 3
   min_size        = 1
