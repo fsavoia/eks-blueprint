@@ -9,39 +9,6 @@ metadata:
   name: cluster-proportional-autoscaler-sa
   namespace: overprovisioning
 ---
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: overprovisioning-autoscaler
-  namespace: overprovisioning
-data:
-  defaultConfig:
-    ladder: |-
-      {
-        "nodesToReplicas":
-        [
-          [ 0, 1 ],
-          [ 5, 2 ],
-          [ 10, 3 ],
-          [ 15, 4 ],
-          [ 20, 5 ],
-          [ 25, 6 ],
-          [ 100, 10 ]
-        ]
-      }
-
-  schedules:
-  - name: night-and-weekend
-    cronTimeExpression: "0 18 * * 1-5"  # disable overprovisioning Monday - Friday from 6pm UTC
-    config:
-      ladder:
-        {
-          "nodesToReplicas":
-            [
-              [0, 0]
-            ]
-        }
----
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -104,6 +71,157 @@ spec:
           requests:
             cpu: 1100m
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cas-schedule-active
+  namespace: overprovisioning
+data:
+  ladder: |-
+    {"nodesToReplicas":[[0,1],[5,2],[10,3],[15,4],[20,5],[25,6],[100,10]]}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cas-schedule-night-and-weekend
+  namespace: overprovisioning
+data:
+  ladder: |-
+    {"nodesToReplicas":[[0,0]]}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cas-schedule-day
+  namespace: overprovisioning
+data:
+  ladder: |-
+    {"nodesToReplicas":[[0,1],[5,2],[10,3],[15,4],[20,5],[25,6],[100,10]]}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cas-schedule-script-night-and-weekend
+  namespace: overprovisioning
+data:
+  configmap.sh: |
+    #!/usr/bin/env sh
+
+    # This script replaces the currently active configmap with another available one.
+
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+
+    main() {
+
+        kubectl get cm "cas-schedule-night-and-weekend" -n "" -o yaml | yq e '.metadata.name = "cas-schedule-active"' - | kubectl replace --force -f -
+    }
+
+    main "$@"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cas-schedule-script-day
+  namespace: overprovisioning
+data:
+  configmap.sh: |
+    #!/usr/bin/env sh
+
+    # This script replaces the currently active configmap with another available one.
+
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+
+    main() {
+
+        kubectl get cm "cas-schedule-day" -n "" -o yaml | yq e '.metadata.name = "cas-schedule-active"' - | kubectl replace --force -f -
+    }
+
+    main "$@"
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cronjob-cas-night-and-weekend
+  namespace: overprovisioning
+spec:
+  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 1
+  schedule: "0 18 * * 1-5"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+        spec:
+          serviceAccountName: cluster-proportional-autoscaler-sa
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 1001
+            fsGroup: 1001
+          containers:
+          - image: "ghcr.io/codecentric/cluster-overprovisioner-helper:latest"
+            imagePullPolicy: "Always"
+            name: night-and-weekend
+            command: ["/app/configmap.sh"]
+            volumeMounts:
+              - name: script
+                mountPath: /app/
+              - name: tmp
+                mountPath: /tmp/
+          restartPolicy: Never
+          volumes:
+            - name: script
+              configMap:
+                name: cas-schedule-script-night-and-weekend
+                defaultMode: 0777
+            - name: tmp
+              emptyDir: {}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cronjob-cas-day
+  namespace: overprovisioning
+spec:
+  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 1
+  schedule: "0 7 * * 1-5"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: 
+            helm.sh/chart: cluster-overprovisioner-0.5.0
+            app.kubernetes.io/version: "1.16.0"
+            app.kubernetes.io/managed-by: Helm
+        spec:
+          serviceAccountName: cluster-proportional-autoscaler-sa
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 1001
+            fsGroup: 1001
+          containers:
+          - image: "ghcr.io/codecentric/cluster-overprovisioner-helper:latest"
+            imagePullPolicy: "Always"
+            name: day
+            command: ["/app/configmap.sh"]
+            volumeMounts:
+              - name: script
+                mountPath: /app/
+              - name: tmp
+                mountPath: /tmp/
+          restartPolicy: Never
+          volumes:
+            - name: script
+              configMap:
+                name: cas-schedule-script-day
+                defaultMode: 0777
+            - name: tmp
+              emptyDir: {}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -127,7 +245,7 @@ spec:
           command:
             - ./cluster-proportional-autoscaler
             - --namespace=overprovisioning
-            - --configmap=overprovisioning-autoscaler
+            - --configmap=cas-schedule-active
             - --target=deployment/overprovisioning
             - --logtostderr=true
             - --v=2
