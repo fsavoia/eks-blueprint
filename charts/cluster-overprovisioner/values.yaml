@@ -110,7 +110,7 @@ op:
 
   resources:
     requests:
-      cpu: 1100m
+      cpu: 2000m
 
   nodeSelector: {}
 

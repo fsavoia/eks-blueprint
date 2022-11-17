@@ -5,6 +5,12 @@ resource "helm_release" "cluster-overprovisioner" {
   namespace        = "overprovisioning"
   create_namespace = true
 
+  set {
+    name  = "op.resources.requests.cpu"
+    value = "6200m"
+  }
+
+
   depends_on = [
     module.eks_blueprints
   ]
