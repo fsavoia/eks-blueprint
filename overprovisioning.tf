@@ -7,7 +7,7 @@ resource "helm_release" "cluster-overprovisioner" {
 
   set {
     name  = "op.resources.requests.cpu"
-    value = "6200m"
+    value = "6500m"
   }
 
 
