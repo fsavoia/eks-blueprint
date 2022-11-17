@@ -57,6 +57,10 @@ module "eks_blueprints" {
       max_size     = local.max_size
       min_size     = local.min_size
 
+      # Launch template configuration
+      create_launch_template = true              # false will use the default launch template
+      launch_template_os     = "amazonlinux2eks" # amazonlinux2eks or bottlerocket
+
       block_device_mappings = [
         {
           device_name = local.device_name
@@ -65,6 +69,7 @@ module "eks_blueprints" {
         }
       ]
 
+      # Custom CNI setup
       # https://docs.aws.amazon.com/eks/latest/userguide/choosing-instance-type.html#determine-max-pods
       pre_userdata = <<-EOT
         MAX_PODS=$(/etc/eks/max-pods-calculator.sh \
