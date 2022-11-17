@@ -104,7 +104,7 @@ module "eks_blueprints_kubernetes_addons" {
   argocd_manage_add_ons = true # Indicates that ArgoCD is responsible for managing/deploying Add-ons.
 
   argocd_applications = {
-    addons    = local.addon_application
+    addons = local.addon_application
     # workloads = local.workload_application #We comment it for now
   }
 
@@ -123,17 +123,17 @@ module "eks_blueprints_kubernetes_addons" {
   #---------------------------------------------------------------
   enable_amazon_eks_kube_proxy         = true
   enable_amazon_eks_aws_ebs_csi_driver = true
-  enable_amazon_eks_vpc_cni = true
-  enable_amazon_eks_coredns = true
+  enable_amazon_eks_vpc_cni            = true
+  enable_amazon_eks_coredns            = true
 
 
   #---------------------------------------------------------------
   # Kubernetes Adds-on managed by ArgoCD
   #---------------------------------------------------------------
-  enable_aws_load_balancer_controller  = true
-  enable_aws_for_fluentbit             = true
-  enable_metrics_server                = true
-  enable_cluster_autoscaler            = true
+  enable_aws_load_balancer_controller = true
+  enable_aws_for_fluentbit            = true
+  enable_metrics_server               = true
+  enable_cluster_autoscaler           = true
 
   tags = local.tags
 
