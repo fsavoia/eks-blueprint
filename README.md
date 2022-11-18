@@ -132,15 +132,7 @@ kubectl describe pod aws-node-ttg4h -n kube-system
 
 ## Validate ArgoCD configuration
 
-The following command will update the `kubeconfig` on your local machine and allow you to interact with your EKS Cluster using `kubectl` to validate the deployment.
-
-1. Run `update-kubeconfig` command:
-
-    ```sh
-    aws eks --region <REGION> update-kubeconfig --name <CLUSTER_NAME>
-    ```
-
-2. List out the pods running currently:
+1. List out the pods running currently:
 
     ```sh
     kubectl get pods -A
@@ -206,25 +198,21 @@ The following command will update the `kubeconfig` on your local machine and all
     yunikorn             yunikorn-scheduler-5c446fcc89-lcmmm                          2/2     Running   0          7m28s
     ```
 
-3. You can access the ArgoCD UI by running the following command:
+3. You can access the ArgoCD UI by running the following command and get AWS Load Balancer address:
 
     ```sh
-    kubectl port-forward svc/argo-cd-argocd-server 8080:443 -n argocd
+    export ARGOCD_SERVER=`kubectl get svc argo-cd-argocd-server -n argocd -o json | jq --raw-output '.status.loadBalancer.ingress[0].hostname'`
+    echo "https://$ARGOCD_SERVER"
     ```
 
-    Then, open your browser and navigate to `https://localhost:8080/`
+    Then, open your browser and navigate to `https://$ARGOCD_SERVER`
     Username should be `admin`.
 
-    The password will be the generated password by `random_password` resource, stored in AWS Secrets Manager.
-    You can easily retrieve the password by running the following command:
+    Retrieve the generated secret for ArgoCD UI admin password. (Note: we could also instead have created a Secret Manager Password for Argo with terraform, see this [example](https://github.com/aws-ia/terraform-aws-eks-blueprints/blob/main/examples/gitops/argocd/main.tf#L77) 
 
     ```sh
-    aws secretsmanager get-secret-value --secret-id <SECRET_NAME>--region <REGION>
+    kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
     ```
-
-    Replace `<SECRET_NAME>` with the name of the secret name, if you haven't changed it then it should be `argocd`, also, make sure to replace `<REGION>` with the region you are using.
-
-    Pickup the the secret from the `SecretString`.
 
 ## Destroy
 
