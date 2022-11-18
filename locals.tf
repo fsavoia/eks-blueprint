@@ -20,6 +20,8 @@ locals {
   volume_type     = "gp3"
   volume_size     = 150
 
+  # kubernetes addons
+  op_requests_cpu                = "1500m"
   enable_cluster-overprovisioner = false
 
   #---------------------------------------------------------------
