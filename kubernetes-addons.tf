@@ -46,4 +46,9 @@ module "eks_blueprints_kubernetes_addons" {
 
   tags = local.tags
 
+  depends_on = [
+    # Modify VPC CNI ahead of addons
+    null_resource.kubectl_set_env
+  ]
+
 }

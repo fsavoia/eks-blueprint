@@ -13,5 +13,5 @@ data "aws_eks_addon_version" "latest" {
 }
 
 data "aws_ssm_parameter" "eks_optimized_ami" {
-  name = "/aws/service/eks/optimized-ami/${local.cluster_version}/amazon-linux-2/recommended/image_id"
+  name = "/aws/service/eks/optimized-ami/${local.version}/amazon-linux-2/recommended/image_id"
 }

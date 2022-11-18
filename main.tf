@@ -90,11 +90,5 @@ module "eks_blueprints" {
     }
   }
 
-  depends_on = [
-    # Modify VPC CNI ahead of addons
-    null_resource.kubectl_set_env
-  ]
-
-
   tags = local.tags
 }

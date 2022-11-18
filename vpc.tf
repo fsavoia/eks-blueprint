@@ -91,8 +91,6 @@ resource "null_resource" "kubectl_set_env" {
     EOT
   }
 
-  depends_on = [module.eks_blueprints]
-
 }
 
 #---------------------------------------------------------------
@@ -115,7 +113,4 @@ resource "kubectl_manifest" "eni_config" {
       subnet = each.value
     }
   })
-
-  depends_on = [module.eks_blueprints]
-
 }
