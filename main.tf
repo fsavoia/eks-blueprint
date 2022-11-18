@@ -58,8 +58,8 @@ module "eks_blueprints" {
       min_size     = local.min_size
 
       # # Launch template configuration
-      # create_launch_template = true              # false will use the default launch template
-      # launch_template_os     = "amazonlinux2eks" # amazonlinux2eks or bottlerocket
+      create_launch_template = true              # false will use the default launch template
+      launch_template_os     = "amazonlinux2eks" # amazonlinux2eks or bottlerocket
 
       block_device_mappings = [
         {
