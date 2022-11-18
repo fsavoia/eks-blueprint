@@ -58,6 +58,7 @@ module "eks_blueprints" {
       min_size     = local.min_size
 
       # # Launch template configuration
+      custom_ami_id          = data.aws_ssm_parameter.eks_optimized_ami.value
       create_launch_template = true              # false will use the default launch template
       launch_template_os     = "amazonlinux2eks" # amazonlinux2eks or bottlerocket
 
@@ -88,6 +89,12 @@ module "eks_blueprints" {
 
     }
   }
+
+  depends_on = [
+    # Modify VPC CNI ahead of addons
+    null_resource.kubectl_set_env
+  ]
+
 
   tags = local.tags
 }
@@ -140,5 +147,4 @@ module "eks_blueprints_kubernetes_addons" {
 
   tags = local.tags
 
-  depends_on = [module.eks_blueprints]
 }

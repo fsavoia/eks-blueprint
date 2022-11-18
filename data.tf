@@ -11,3 +11,7 @@ data "aws_eks_addon_version" "latest" {
   kubernetes_version = module.eks_blueprints.eks_cluster_version
   most_recent        = true
 }
+
+data "aws_ssm_parameter" "eks_optimized_ami" {
+  name = "/aws/service/eks/optimized-ami/${local.cluster_version}/amazon-linux-2/recommended/image_id"
+}
