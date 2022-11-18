@@ -11,7 +11,7 @@ locals {
 
   # Managed Node Group Variables
   node_group_name = "managed-ondemand"
-  instance_types  = ["m5.2xlarge"]
+  instance_types  = ["m5.large"]
   capacity_type   = "ON_DEMAND"
   desired_size    = 3
   min_size        = 1
@@ -19,6 +19,8 @@ locals {
   device_name     = "/dev/xvda"
   volume_type     = "gp3"
   volume_size     = 150
+
+  enable_cluster-overprovisioner = false
 
   #---------------------------------------------------------------
   # ARGOCD ADD-ON APPLICATION

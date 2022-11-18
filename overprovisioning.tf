@@ -1,4 +1,5 @@
 resource "helm_release" "cluster-overprovisioner" {
+  count            = local.enable_cluster-overprovisioner ? 1 : 0
   name             = "cluster-overprovisioner"
   chart            = "cluster-overprovisioner"
   repository       = "./charts"
@@ -7,7 +8,7 @@ resource "helm_release" "cluster-overprovisioner" {
 
   set {
     name  = "op.resources.requests.cpu"
-    value = "6500m"
+    value = "1500m"
   }
 
 

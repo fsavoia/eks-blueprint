@@ -57,9 +57,9 @@ module "eks_blueprints" {
       max_size     = local.max_size
       min_size     = local.min_size
 
-      # Launch template configuration
-      create_launch_template = true              # false will use the default launch template
-      launch_template_os     = "amazonlinux2eks" # amazonlinux2eks or bottlerocket
+      # # Launch template configuration
+      # create_launch_template = true              # false will use the default launch template
+      # launch_template_os     = "amazonlinux2eks" # amazonlinux2eks or bottlerocket
 
       block_device_mappings = [
         {
@@ -103,6 +103,14 @@ module "eks_blueprints_kubernetes_addons" {
   auto_scaling_group_names     = module.eks_blueprints.self_managed_node_group_autoscaling_groups
 
   #---------------------------------------------------------------
+  # EKS Native Add-on
+  #---------------------------------------------------------------
+  enable_amazon_eks_kube_proxy         = true
+  enable_amazon_eks_aws_ebs_csi_driver = true
+  enable_amazon_eks_vpc_cni            = true
+  enable_amazon_eks_coredns            = true
+
+  #---------------------------------------------------------------
   # ArgoCD Add-on
   #---------------------------------------------------------------
   enable_argocd         = true
@@ -121,16 +129,6 @@ module "eks_blueprints_kubernetes_addons" {
       }
     ]
   }
-
-
-  #---------------------------------------------------------------
-  # EKS Native Add-on
-  #---------------------------------------------------------------
-  enable_amazon_eks_kube_proxy         = true
-  enable_amazon_eks_aws_ebs_csi_driver = true
-  enable_amazon_eks_vpc_cni            = true
-  enable_amazon_eks_coredns            = true
-
 
   #---------------------------------------------------------------
   # Kubernetes Adds-on managed by ArgoCD
