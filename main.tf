@@ -7,8 +7,13 @@ module "eks_blueprints" {
   cluster_name    = local.name
   cluster_version = local.version
 
-  vpc_id             = module.vpc.vpc_id
-  private_subnet_ids = module.vpc.private_subnets
+  vpc_id                   = module.vpc.vpc_id
+  private_subnet_ids       = slice(module.vpc.private_subnets, 0, 3)
+  control_plane_subnet_ids = module.vpc.intra_subnets
+
+  # https://github.com/aws-ia/terraform-aws-eks-blueprints/issues/485
+  # https://github.com/aws-ia/terraform-aws-eks-blueprints/issues/494
+  cluster_kms_key_additional_admin_arns = [data.aws_caller_identity.current.arn]
 
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = true
@@ -91,4 +96,67 @@ module "eks_blueprints" {
   }
 
   tags = local.tags
+}
+
+#---------------------------------------------------------------
+# Add-ons
+#---------------------------------------------------------------
+module "eks_blueprints_kubernetes_addons" {
+  source = "github.com/aws-ia/terraform-aws-eks-blueprints?ref=v4.16.0//modules/kubernetes-addons"
+
+  eks_cluster_id               = module.eks_blueprints.eks_cluster_id
+  eks_cluster_endpoint         = module.eks_blueprints.eks_cluster_endpoint
+  eks_oidc_provider            = module.eks_blueprints.oidc_provider
+  eks_cluster_version          = module.eks_blueprints.eks_cluster_version
+  eks_worker_security_group_id = module.eks_blueprints.worker_node_security_group_id
+  auto_scaling_group_names     = module.eks_blueprints.self_managed_node_group_autoscaling_groups
+
+  #---------------------------------------------------------------
+  # EKS Native Add-on
+  #---------------------------------------------------------------
+  enable_amazon_eks_kube_proxy = true
+  enable_amazon_eks_vpc_cni    = true
+  amazon_eks_vpc_cni_config = {
+    # Version 1.6.3-eksbuild.2 or later of the Amazon VPC CNI is required for custom networking
+    # Version 1.9.0 or later (for version 1.20 or earlier clusters or 1.21 or later clusters configured for IPv4)
+    # or 1.10.1 or later (for version 1.21 or later clusters configured for IPv6) of the Amazon VPC CNI for prefix delegation
+    addon_version     = data.aws_eks_addon_version.latest["vpc-cni"].version
+    resolve_conflicts = "OVERWRITE"
+  }
+
+  #---------------------------------------------------------------
+  # ArgoCD Add-on
+  #---------------------------------------------------------------
+  enable_argocd         = true
+  argocd_manage_add_ons = true # Indicates that ArgoCD is responsible for managing/deploying Add-ons.
+
+  argocd_applications = {
+    addons    = local.addon_application
+    workloads = local.workload_application
+  }
+
+  argocd_helm_config = {
+    set = [
+      {
+        name  = "server.service.type"
+        value = "LoadBalancer"
+      }
+    ]
+  }
+
+  #---------------------------------------------------------------
+  # Kubernetes Adds-on managed by ArgoCD
+  #---------------------------------------------------------------
+  enable_metrics_server     = true
+  enable_cluster_autoscaler = true
+  enable_ingress_nginx      = true
+  
+
+  tags = local.tags
+
+  depends_on = [
+    # Modify VPC CNI ahead of addons
+    null_resource.kubectl_set_env
+  ]
+
 }

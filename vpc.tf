@@ -2,17 +2,18 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 3.0"
 
-  name                  = local.name
-  cidr                  = local.vpc_cidr
-  secondary_cidr_blocks = [local.secondary_vpc_cidr]
+  name = local.name
+  cidr = local.vpc_cidr
 
-  azs            = local.azs
-  public_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k)]
+  secondary_cidr_blocks = [local.secondary_vpc_cidr] # can add up to 5 total CIDR blocks
 
+  azs = local.azs
   private_subnets = concat(
-    [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 10)],
+    [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)],
     [for k, v in local.azs : cidrsubnet(local.secondary_vpc_cidr, 2, k)]
   )
+  public_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 48)]
+  intra_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 52)]
 
   enable_nat_gateway   = true
   single_nat_gateway   = true

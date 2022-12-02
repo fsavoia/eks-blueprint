@@ -11,7 +11,7 @@ locals {
 
   # Managed Node Group Variables
   node_group_name = "managed-ondemand"
-  instance_types  = ["m5.large"]
+  instance_types  = ["m5.xlarge"]
   capacity_type   = "ON_DEMAND"
   desired_size    = 3
   min_size        = 1
@@ -36,11 +36,11 @@ locals {
   #---------------------------------------------------------------
   # ARGOCD WORKLOAD APPLICATION
   #---------------------------------------------------------------
-  # workload_application = {
-  #   path               = "envs/dev"
-  #   repo_url           = "https://github.com/fsavoia/eks-blueprints-workloads.git"
-  #   add_on_application = false
-  # }
+  workload_application = {
+    path               = "envs/dev"
+    repo_url           = "https://github.com/fsavoia/eks-blueprints-workloads.git"
+    add_on_application = false
+  }
 
   # Additional tags
   tags = {
